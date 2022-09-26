@@ -1,0 +1,13 @@
+{
+  "name": "technoEscape",
+  "version": "1.0.0",
+  "description": "Technobothnia Escape Room app",
+  "main": "index.html",
+  "author": "Jyri Nieminen",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "bootstrap": "^5.2.1",
+    "jquery": "^3.6.1"
+  }
+}

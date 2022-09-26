@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Technobothnia Escape Room Game</title>
+  <link rel="stylesheet" href="../../node_modules/bootstrap/dist/css/bootstrap.css">
+  <link rel="stylesheet" href="../../css/main.css">
+  <style>
+    /** Some styling to overwrite bootstrap
+     TODO: Move these to the main.css stylesheet
+     */
+    .btn{
+      border: 1px solid rgba(0, 0, 0, 25%);
+    }
+    .table{
+      color: ghostwhite;
+    }
+    .table-striped>tbody>tr:nth-child(odd)>td,
+    .table-striped>tbody>tr:nth-child(odd)>th {
+      --bs-table-accent-bg: rgb(0 0 0 / 25%);
+      color: ghostwhite;
+    }
+  </style>
+  <script src="../../node_modules/bootstrap/dist/js/bootstrap.js"></script>
+  <script src="../../node_modules/jquery/dist/jquery.min.js"></script>
+  <script>
+    /**
+     * Class for the puzzle object.
+     *
+     * Mainly used to store the hints and solution for puzzles neatly.
+     */
+    class Puzzle{
+      constructor(hint1, hint2, hint3, solution) {
+        this.hint1 = hint1;
+        this.hint2 = hint2;
+        this.hint3 = hint3;
+        this.solution = solution;
+      }
+    }
+
+    /**
+     * Initialise needed variables
+     */
+    let timer;
+    let seconds = 0;
+    let minutes = 0;
+    let hours = 0;
+    let hintsUsed = 0;
+    let group = "Anonymous";
+    let organisation = "UWASA";
+
+    /**
+     * Document ready function
+     *
+     * This is run after the page is fully loaded and all objects are fully rendered
+     */
+    $(function(){
+      initButtons();
+    });
+
+    /**
+     * Function to initialise button events (mostly just click events)
+     */
+    function initButtons(){
+
+      /**
+       * Setup each next button with the btnNextSlide class (ie. most 'Continue' buttons)
+       *
+       * Get the object IDs from button data-target and data-parent attributes.
+       * On click hide the parent (by sliding it up) and after that's done show (slideDown) the target slide
+       */
+      $('.btnNextSlide').each(function(){
+        let target = $(this).data('target');
+        let parent = $(this).data('parent');
+
+        $(this).on('click', function(){
+          $(parent).slideUp('fast', function(){
+            $(target).slideDown('fast');
+          });
+        });
+      });
+
+      /**
+       * Same as above
+       * TODO: See if elements with this class could be changed to btnNextSlide
+       * (Not sure why this is here)
+       */
+      $('.btn_transition').each(function(){
+        let target = $(this).data('target');
+        let parent = $(this).data('parent');
+
+        $(this).on('click', function(){
+          $(parent).slideUp('fast', function(){
+            $(target).slideDown('fast');
+          });
+        });
+      });
+
+      /**
+       * Set the button for the "Eneter your name" slide.
+       *
+       * Get the parent and target as above and deal with them the same way.
+       *
+       * Added a check the see that the #group_name input isn't empty. If there's a value set the group variable and
+       * move on to the next slide. If it's empty show an alert.
+       *
+       * TODO: Maybe setup a custom alert system that looks a little nicer. Though not really necessary.
+       */
+      $('#btn_enterName').on('click', function(){
+        let target = $(this).data('target');
+        let parent = $(this).data('parent');
+
+        let groupName = $('#group_name').val();
+        if(groupName)
+        {
+          group = groupName;
+          $(parent).slideUp('fast', function(){
+            $(target).slideDown('fast');
+          });
+        }
+        else alert('Please give your group a name and then click continue.');
+      });
+
+      /**
+       * Setup the start game button
+       */
+      $('#btn_startGame').on('click', function(){
+        /**
+         * Set the timer. Run a function every 1000 milliseconds.
+         */
+        timer = setInterval(function(){
+          //Increase seconds by one, then check if it's equal to or higher than 60, increase minutes, etc.
+          seconds++;
+          if(seconds >= 60)
+          {
+            minutes++;
+            seconds = 0;
+          }
+          if(minutes >= 60)
+          {
+            hours++;
+            minutes = 0;
+          }
+
+          //Set string elements to show on the slides
+          let secondsString = seconds;
+          let minutesString = minutes;
+          let hoursString = hours;
+
+          //Check if the values are less than 2 digits, so we get the display in format "HH:mm:ss"
+          if(seconds < 10)
+            secondsString = "0" + seconds.toString();
+          if(minutes < 10)
+            minutesString = "0" + minutes.toString();
+          if(hours < 10)
+            hoursString = "0" + hours.toString();
+
+          //Set the text on each element with timerDisplay class
+          let timeString = hoursString + ":" + minutesString + ":" + secondsString;
+          $('.timerDisplay').text(timeString);
+        }, 1000);
+
+        //Move to the next slide
+        $('#slide_gameStart').slideUp('fast', function(){
+          $('#slide_transition_1').slideDown('fast');
+        });
+      });
+
+      /**
+       * End game button
+       *
+       * Stop the timer, get the final time and convert that to strings, get current date, and finally append a new row
+       * to the high scores table.
+       */
+      $('#btn_endGame').on('click', function(){
+        //Clear the times
+
+        clearInterval(timer);
+
+        //Get final times
+        let finalSeconds = seconds;
+        if(seconds < 10)
+          finalSeconds = "0" + seconds;
+        let finalMinutes = minutes;
+        if(minutes < 10)
+          finalMinutes = "0" + minutes;
+        let finalHours = hours;
+        if(hours < 10)
+          finalHours = "0" + hours;
+
+        //Set the finalTime string and get current date.
+        let finalTime = finalHours + ":" + finalMinutes + ":" + finalSeconds;
+        let date = new Date();
+        let dateString = date.toLocaleDateString('fi-FI');
+
+        //Append a new row to the high scores table
+        let toAppend = `<tr><td>${group}</td><td>${organisation}</td><td>${dateString}</td><td>${finalTime}</td><td>${hintsUsed}</td></tr>`;
+        //console.log(toAppend);
+        $('#table_highscores').append(toAppend);
+
+        //Move on to the high scores slide
+        $('#slide_transition_end').slideUp('fast', function(){
+          $('#slide_highscores').slideDown('fast');
+        });
+      });
+
+      /**
+       * Restart button. Simply reload the page to get back to the first slide.
+       */
+      $('#btn_restart').on('click', function(){
+        window.location.reload();
+      });
+    }
+
+    /**
+     * Set up puzzles object the hold the information for each puzzle
+     *
+     * I've given them a running numbering id. Each index just holds a Puzzle -class object that holds all the hints
+     * and solution for the puzzle
+     */
+    let puzzles = {
+      1: new Puzzle("This is the hint 1 for the first puzzle",
+              "This is the second hint for the first puzzle",
+              "This is the solution (or how to solve) for the first puzzle",
+              "1234"),
+      2: new Puzzle("This is the first hint for the second puzzle",
+              "This is the second hint for the 2nd puzzle",
+              "This is the solution for the 2nd puzzle",
+              "4321")
+    }
+
+    /**
+     * Show the requested hint (this is attached to each Hint button as a onclick event)
+     * @param puzzleId  Running ID for the puzzle
+     * @param hint      Which hint to show (1, 2 or 3)
+     */
+    function showHint(puzzleId, hint)
+    {
+      //Get the puzzle with the given ID
+      let puzzle = puzzles[puzzleId];
+      //Set the hint to show (default to false, so we don't penalise the player if no hint is found)
+      let toShow = false;
+      //Set the title of the Hint dialog
+      let title = "";
+
+      //Get the hint with the given param (1, 2 or 3) and give the player a penalty of 30 seconds.
+      //As a default do nothing
+      switch(hint)
+      {
+        case 1:
+          seconds += 30;
+          toShow = puzzle.hint1;
+          title = "Hint 1";
+          break;
+        case 2:
+          seconds += 30;
+          toShow = puzzle.hint2;
+          title = "Hint 2";
+          break;
+        case 3:
+          seconds += 30;
+          toShow =  puzzle.hint3;
+          title = "The Solution";
+          break;
+        default:
+      }
+
+      //Check if the penalty pushes the time to the next minute.
+      if(seconds >= 60)
+      {
+        minutes++
+        seconds -= 60;
+      }
+
+      //If there's a hint to be shown popup the bootstrap Modal window (dialog).
+      //Also set the title for the window and the actual hint and finally increase the hintsUsed variable by 1.
+      if(toShow)
+      {
+        //alert(toShow);
+        const hintModal = new bootstrap.Modal('#hintModalDialog');
+        $('#hintModalContent').text(toShow);
+        $('#hintModalTitle').text(title);
+        hintModal.show();
+        hintsUsed++;
+      }
+      else
+        alert("Error occurred!");
+    }
+
+    /**
+     * Check if the solution for the puzzle the player's entered is correct.
+     *
+     * @param puzzleId      Running ID of the puzzle
+     * @param inputId       ID of the input for the player's answer
+     * @param sourceButton  Which button originated this (to get the parent and target ID's)
+     */
+    function checkSolution(puzzleId, inputId, sourceButton)
+    {
+      //Get the puzzle and the value player's entered
+      let puzzle = puzzles[puzzleId];
+      let input = $(inputId);
+      let inputVal = input.val();
+
+      //console.log(sourceButton);
+      //If the player's value and the solution match, move on to the next slide. If not, show an error
+      //TODO: Maybe implement a custom alert for the incorrect answer
+      if(puzzle.solution === inputVal)
+      {
+        let target = sourceButton.data('target');
+        let parent = sourceButton.data('parent');
+
+        $(parent).slideUp('fast', function(){
+          $(target).slideDown('fast');
+        });
+      }
+      else
+      {
+        alert("Incorrect code! Please try again! If you're stuck try clicking the Hints to get some help.");
+      }
+    }
+  </script>
+</head>
+<body>
+<!-- Modal
+Dialog for showing the hints when requested.
+Modal window from Bootstrap. Basically copy pasted from Bootstrap documentation
+-->
+<div class="modal fade" style="color: black;" id="hintModalDialog" tabindex="-1" aria-labelledby="hintModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="hintModalTitle">HINT TITLE HERE</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <span id="hintModalContent">HINT TEXT HERE</span>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Main container, wraps everything -->
+<div class="container-fluid p-3 h-100">
+  <!-- Start slide
+   This is the slide shown after player's have selected a language on the landing page
+   -->
+  <div id="slide_start" class="">
+    <div class="slide_helpContent pt-5">
+      <br><br><br>
+      <div class="intro text-center">
+        <h1>WELCOME!<br>Technobothnia Escape Room Game</h1>
+      </div>
+      <br><br>
+      <p class="fs-3">
+        Add a nice introduction text here, also maybe some nice graphics to make this look a little nicer and less barren.
+      </p>
+      <p class="fs-3">
+        <label for="group_name">Please enter the name of your group and click "Continue".</label>
+      </p>
+      <div class="col-12">
+        <input id="group_name" type="text" class="form-control fs-3">
+      </div>
+      <div class="col-12 text-center p-3">
+        <button type="button" id="btn_enterName" class="btn btn-success fs-3" data-parent="#slide_start" data-target="#slide_help_1">Continue</button>
+      </div>
+    </div>
+  </div>
+  <!-- Start slide END -->
+  <!-- Rules slide 1 -->
+  <div id="slide_help_1" class="slideHidden">
+    <div class="slide_helpContent pt-5">
+      <div class="intro text-center">
+        <h1>RULES 1/2</h1>
+      </div>
+      <p class="fs-3">
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore
+        magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+        consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
+        pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est
+        laborum.
+      </p>
+      <div class="row">
+        <div class="col-4 offset-8">
+          <button type="button" id="btn_gotoSlideHelp2" data-target="#slide_help_2" data-parent="#slide_help_1" class="btnNextSlide btn btn-success fs-3">Continue</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Rules slide 1 END -->
+  <!-- Rules slide 2 -->
+  <div id="slide_help_2" class="slideHidden">
+    <div class="slide_helpContent pt-5">
+      <div class="intro text-center">
+        <h1>RULES 2/2</h1>
+      </div>
+      <p class="fs-3">
+        "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem
+        aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
+        Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores
+        eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet,
+        consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam
+        quaerat voluptatem. Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam,
+        nisi ut aliquid ex ea commodi consequatur? Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse
+        quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla pariatur?"
+      </p>
+      <div class="row">
+        <div class="col-4 offset-8">
+          <button type="button" id="btn_gotoGameStart" data-target="#slide_gameStart" data-parent="#slide_help_2" class="btnNextSlide btn btn-success fs-3">Continue</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Rules slide 2 end -->
+  <!-- Game start/ Intro video slide -->
+  <div id="slide_gameStart" class="slideHidden h-100">
+    <div class="row h-100">
+      <div class="col-8 fs-3 h-100" style="background: hotpink;">
+        <div style="margin: auto; padding: 300px;">
+          <!-- The idea is to host the videos locally (e.g. in "videos" -folder or something) and just use a
+           video player here. Just a HTML5 <video> is probably enough-->
+          INTRO VIDEO HERE
+        </div>
+      </div>
+      <div class="col-4 fs-3">
+        <div style="text-align: right">
+          <!-- Element for showing the running timer. Since we're not going to have hundreds of slides, we can
+           most likely get away with just copypasting this into every slide that needs to show the timer and update it
+           with the timerDisplay class selector (like we're doing now)-->
+          <span class="timerDisplay">00:00:00</span>
+        </div>
+        <div style="height: calc(100% - 120px);">
+          This is the introduction page for the game. Since the videos will be silent "dialog" will be placed here.<br><br>
+          The video will have controls so players can rewatch a video if they like.<br><br>
+          The first video shown here will explain the premise and plot of the game.<br><br>
+          Clicking "Start" will start the timer and move you to the first transition video.
+        </div>
+        <div style="text-align: right">
+          <!-- Note that this is one of the few buttons to not use the next_slide class, since we need to run more code
+          than just moving on to the next slide -->
+          <button type="button" id="btn_startGame" data-target="#slide_transition_1" class="btn btn-success fs-3">Start</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Game start END -->
+  <!-- Transition slide -->
+  <div id="slide_transition_1" class="slideHidden h-100">
+    <div class="row h-100">
+      <div class="col-8 fs-3 h-100" style="background: hotpink;">
+        <div style="margin: auto; padding: 300px;">
+          TRANSITION VIDEO HERE
+        </div>
+      </div>
+      <div class="col-4 fs-3">
+        <div style="text-align: right">
+          <span class="timerDisplay">00:00:00</span>
+        </div>
+        <div style="height: calc(100% - 120px);">
+          This is a transition video.<br><br>
+          Between puzzles there will be videos in which are shown short transition videos from one place to another<br><br>
+          The videos will start playing automatically after players have clicked "Continue" or have input the correct code for a puzzle.<br><br>
+          The dialog will be simple e.g. "Follow me! We're going to the Thingamajig Laboratory!"<br><br>
+          <span class="fw-bold">TODO: Automatically transition to the next puzzle or button to continue?</span>
+        </div>
+        <div style="text-align: right">
+          <button type="button" id="btn_gotoPuzzle1" data-target="#slide_puzzle_1" data-parent="#slide_transition_1" class="btn btn-success btn_transition fs-3">Continue</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Transition slide END -->
+  <!-- Puzzle 1 slide -->
+  <div id="slide_puzzle_1" class="slideHidden h-100">
+    <!-- Use a row to split the slide into 2 columns. One to show the picture and hint buttons and the other to
+    show the text, answer input and the button to answer -->
+    <div class="row h-100">
+      <!-- Column 1 -->
+      <div class="col-8 fs-3 h-100">
+        <div style="" class="h-75 pt-3">
+          <div style="border: 1px solid black; height: calc(100%); padding-top: calc(25% - 25px); text-align: center">
+            <span>PICTURE HERE</span>
+          </div>
+        </div>
+        <div class="h-25 pt-5">
+          <div class="row pt-4">
+            <div class="col-4 text-center">
+              <button type="button" class="btn btn-success fs-3" onclick="showHint(1, 1)">Hint 1</button>
+            </div>
+            <div class="col-4 text-center">
+              <button type="button" class="btn btn-warning fs-3" onclick="showHint(1, 2)">Hint 2</button>
+            </div>
+            <div class="col-4 text-center">
+              <button type="button" class="btn btn-danger fs-3" onclick="showHint(1, 3)">Solution</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Column 2 -->
+      <div class="col-4 fs-3">
+        <div style="text-align: right">
+          <span class="timerDisplay">00:00:00</span>
+        </div>
+        <div style="height: calc(100% - 225px);">
+          PUZZLE 1<br><br>
+          The picture will show, what the players need to solve/start this puzzle. Also maybe give additional instructions if need be.<br><br>
+          Entering the correct code and clicking "Continue" will either show an error message (e.g. "Code incorrect! Try again!") or show the next transition video.
+        </div>
+        <div class="py-3">
+          <label for="puzzleSolution1">Puzzle code</label>
+          <input type="text" class="form-control" id="puzzleSolution1" >
+        </div>
+        <div style="text-align: right">
+          <!-- Attach the checkSolution() as an onclick event. As parameters give the ID of the puzzle, ID for the input
+          element and the button as a jquery object ( $(this) ). -->
+          <button type="button" data-solution="1234" onclick="checkSolution(1, '#puzzleSolution1', $(this))" id="btn_gotoTransition2" data-target="#slide_transition_2" data-parent="#slide_puzzle_1" class="btn btn-success btn_puzzle fs-3">Continue</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Puzzle 1 slide END -->
+  <!-- Transition slide -->
+  <div id="slide_transition_2" class="slideHidden h-100">
+    <div class="row h-100">
+      <div class="col-8 fs-3 h-100" style="background: hotpink;">
+        <div style="margin: auto; padding: 300px;">
+          TRANSITION VIDEO 2 HERE
+        </div>
+      </div>
+      <div class="col-4 fs-3">
+        <div style="text-align: right">
+          <span class="timerDisplay">00:00:00</span>
+        </div>
+        <div style="height: calc(100% - 120px);">
+          This is the second transition.<br><br>
+          There can as many transitions or puzzles as we like.<br><br>
+        </div>
+        <div style="text-align: right">
+          <button type="button" id="btn_gotoPuzzle2" data-target="#slide_puzzle_2" data-parent="#slide_transition_2" class="btn btn-success btn_transition fs-3">Continue</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Transition slide END -->
+  <!-- Puzzle 2 slide -->
+  <div id="slide_puzzle_2" class="slideHidden h-100">
+    <div class="row h-100">
+      <div class="col-8 fs-3 h-100">
+        <div style="" class="h-75 pt-3">
+          <div style="border: 1px solid black; height: calc(100%); padding-top: calc(25% - 25px); text-align: center">
+            <span>PICTURE HERE</span>
+          </div>
+        </div>
+        <div class="h-25 pt-5">
+          <div class="row pt-4">
+            <div class="col-4 text-center">
+              <button type="button" class="btn btn-success fs-3" onclick="showHint(2, 1)">Hint 1</button>
+            </div>
+            <div class="col-4 text-center">
+              <button type="button" class="btn btn-warning fs-3" onclick="showHint(2, 2)">Hint 2</button>
+            </div>
+            <div class="col-4 text-center">
+              <button type="button" class="btn btn-danger fs-3" onclick="showHint(2, 3)">Solution</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-4 fs-3">
+        <div style="text-align: right">
+          <span class="timerDisplay">00:00:00</span>
+        </div>
+        <div style="height: calc(100% - 225px);">
+          PUZZLE 2<br><br>
+          Same as the 1st puzzle, introduction & instruction, etc.<br><br>
+          <span class="fw-bolder">
+            TODO: Maybe set the hint buttons so that you have to click them in order? So you would first have to click
+            Hint 1, then Hint 2 and finally the Solution. This would probably make setting the penalty for using the
+            hints a little easier, since you couldn't just click Solution straigth away.
+          </span>
+        </div>
+        <div class="py-3">
+          <label for="puzzleSolution2">Puzzle code</label>
+          <input type="text" class="form-control" id="puzzleSolution2" >
+        </div>
+        <div style="text-align: right">
+          <button type="button" onclick="checkSolution(2, '#puzzleSolution2', $(this))" id="btn_gotoTransitionEnd" data-target="#slide_transition_end" data-parent="#slide_puzzle_2" class="btn btn-success btn_puzzle fs-3">Continue</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Puzzle 2 slide end -->
+  <!-- End transition slide
+  The button has the btn_endGame ID so in javascript we know to end the game -->
+  <div id="slide_transition_end" class="slideHidden h-100">
+    <div class="row h-100">
+      <div class="col-8 fs-3 h-100" style="background: hotpink;">
+        <div style="margin: auto; padding: 300px;">
+          OUTRO VIDEO HERE
+        </div>
+      </div>
+      <div class="col-4 fs-3">
+        <div style="text-align: right">
+          <span class="timerDisplay">00:00:00</span>
+        </div>
+        <div style="height: calc(100% - 120px);">
+          <span class="fw-bolder">CONGRATULATIONS!</span><br>
+          You finished the game and escaped (hopefully)<br><br>
+          This is the ending transition<br><br>
+          Clicking "Finish!" will stop the timer and show the score (or whatever we want to show).<br><br>
+        </div>
+        <div style="text-align: right">
+          <button type="button" id="btn_endGame" class="btn btn-success btn_transition fs-3">Finish!</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- End transition slide END -->
+  <!-- High scores table -->
+  <div id="slide_highscores" class="h-100 slideHidden">
+    <div class="fs-3">
+      <h1>HIGH-SCORES</h1>
+      <table class="table table-responsive table-striped">
+        <thead>
+        <tr>
+          <th>Group</th><th>School/Organisation</th><th>Date</th><th>Time</th><th>Hints used</th>
+        </tr>
+        </thead>
+        <tbody id="table_highscores">
+        <!-- TODO: Get & Set high-scores in a database somewhere -->
+        <tr>
+          <td>Group 1</td><td>Technobothnia</td><td>21.08.2022</td><td>12:34:56</td><td>6</td>
+        </tr>
+        <tr>
+          <td>Group 2</td><td>VYY</td><td>20.08.2022</td><td>65:43:21</td><td>0</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="fs-3">
+      <div style="text-align: right">
+        <button type="button" id="btn_restart" class="btn btn-success btn_transition fs-3">Back to start</button>
+      </div>
+    </div>
+  </div>
+  <!-- High scores table END -->
+</div>
+<!-- Main container END -->
+</body>
+</html>

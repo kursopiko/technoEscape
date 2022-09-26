@@ -1,0 +1,50 @@
+<!-- Landing page
+ There's no sitemap written but the structure should be rather simple.
+
+ _DOCS -  Contains all the documents related to the page (currently just the powerpoint from Josefin)
+ css - Contains custom stylesheets
+ game - Contains the application itself for all three languages (en, fi and se)
+ node_modules - Contains external libraries. Downloaded with Yarn package manager (currently just Bootstrap and jQuery)
+ -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Technobothnia Escape Room</title>
+    <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.css">
+    <link rel="stylesheet" href="css/main.css">
+    <script src="node_modules/bootstrap/dist/js/bootstrap.js"></script>
+    <script src="node_modules/jquery/dist/jquery.min.js"></script>
+    <script>
+        $(function(){
+            $('#start-fi').on('click', function(){
+                window.location.replace("game/fi/index.html");
+            });
+            $('#start-se').on('click', function(){
+                window.location.replace("game/se/index.html");
+            });
+            $('#start-en').on('click', function(){
+                window.location.replace("game/en/index.html");
+            });
+        })
+    </script>
+</head>
+<body>
+<div class="col-12 p-3 mt-5 text-center">
+    <h1>TECHNO<span class="fw-bold">BOTHNIA</span></h1>
+    <h2>Escape Room Game</h2>
+    <div class="row p-5 m-5">
+        <div class="col-4">
+            <button type="button" class="btn btn-primary" id="start-fi">Suomi</button>
+        </div>
+        <div class="col-4">
+            <button type="button" class="btn btn-primary" id="start-se">Svenska</button>
+        </div>
+        <div class="col-4">
+            <button type="button" class="btn btn-primary" id="start-en">English</button>
+        </div>
+    </div>
+</div>
+</body>
+</html>
